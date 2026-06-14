@@ -1,0 +1,43 @@
+/*==============================================================================================*
+
+  FoxOne — userContent.css
+  Styles for browser content pages (new tab, home).
+
+*==============================================================================================*/
+
+
+/* ==========================================================================
+   CONFIG
+   ========================================================================== */
+
+:root {
+  /* Scrollbar visibility in web content
+   * none = hidden (scroll via mousewheel/keyboard/touchpad)
+   * thin = always visible, slim style
+   * auto = default OS scrollbar */
+  --uc-content-scrollbar: auto;
+}
+
+
+/* ==========================================================================
+   SCROLLBAR
+   ========================================================================== */
+
+* {
+  scrollbar-width: var(--uc-content-scrollbar) !important;
+}
+
+
+/* ==========================================================================
+   NEW TAB / HOME — Gruvbox Dark (dark mode only)
+   ========================================================================== */
+
+
+@-moz-document url-prefix("about:newtab"), url-prefix("about:home") {
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --newtab-background-color: #282828 !important;
+      --newtab-text-primary-color: #FFFFFF !important;
+    }
+  }
+}

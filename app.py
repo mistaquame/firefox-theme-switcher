@@ -12,6 +12,7 @@ from theme_manager import (
     detect_active_theme,
     apply_theme,
     ensure_custom_stylesheets_enabled,
+    ensure_default_theme,
     FirefoxTheme,
 )
 
@@ -329,6 +330,7 @@ class App(tk.Tk):
     def _scan(self):
         root = Path.cwd() / self.config_store.data.get("theme_folder", "themes")
         root.mkdir(exist_ok=True)
+        ensure_default_theme(root)  # always offer Default reset theme
         self.themes = scan_themes(root)
         self.active_theme = (
             detect_active_theme(self.profile_path, self.themes)

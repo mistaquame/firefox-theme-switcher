@@ -106,6 +106,36 @@ def validate_profile(profile_folder: Path) -> None:
         raise ValueError("Invalid Firefox profile folder — must contain prefs.js.")
 
 
+DEFAULT_THEME_NAME = "Default"
+
+
+def ensure_default_theme(theme_root: Path) -> FirefoxTheme:
+    """Create Default theme with empty CSS to reset Firefox to default look."""
+    folder = theme_root / DEFAULT_THEME_NAME
+    folder.mkdir(parents=True, exist_ok=True)
+
+    user_chrome = folder / "userChrome.css"
+    user_content = folder / "userContent.css"
+
+    if not user_chrome.exists():
+        user_chrome.write_text("", encoding="utf-8")
+    if not user_content.exists():
+        user_content.write_text("", encoding="utf-8")
+
+    # write a source file so UI shows description
+    src = folder / "source"
+    if not src.exists():
+        src.write_text("Firefox default — no custom styling\n", encoding="utf-8")
+
+    return FirefoxTheme(
+        name=DEFAULT_THEME_NAME,
+        folder=folder,
+        source_url="Firefox default — no custom styling",
+        user_chrome=user_chrome,
+        user_content=user_content,
+    )
+
+
 def apply_theme(profile_folder: Path, theme: FirefoxTheme) -> Path:
     chrome_dir = profile_folder / "chrome"
     chrome_dir.mkdir(parents=True, exist_ok=True)

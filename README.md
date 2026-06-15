@@ -75,7 +75,3 @@ firefox-theme-switcher/
       source           — optional GitHub URL (editable from app)
 ```
 
-## Tech
-
-- **Python** — standard library only (tkinter, pathlib, hashlib, shutil, json)
-- **Design** — warm orange/gold accent palette (`#FF6B35` → `#FFB347` → `#FFD700`), frosted-glass cards with tri-color gradient bars

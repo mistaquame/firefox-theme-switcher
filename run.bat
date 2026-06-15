@@ -1,4 +1,4 @@
-F:
-cd /d "F:\Programmiershit\hermesstuff\firefox-theme-switcher"
+@echo off
+cd /d "%~dp0"
 python app.py
 pause

@@ -1,6 +1,6 @@
 # Firefox Theme Switcher
 
-A lightweight Windows desktop tool to switch between downloaded Firefox CSS themes (`userChrome.css` / `userContent.css`) with one click. Dark glass morphism UI styled after the [lyrics-extractor](https://github.com/mistaquame/lyricsextractor) project.
+A lightweight cross-platform desktop tool to switch between downloaded Firefox CSS themes (`userChrome.css` / `userContent.css`) with one click. Dark glass morphism UI styled after the [lyrics-extractor](https://github.com/mistaquame/lyricsextractor) project.
 
 ## Features
 
@@ -13,17 +13,23 @@ A lightweight Windows desktop tool to switch between downloaded Firefox CSS them
 
 ## How to run
 
-```bat
-run.bat
-```
-
-Or from a terminal:
+**Windows** — double-click `run.bat` or run from terminal:
 
 ```bat
 python app.py
 ```
 
+**Linux / macOS** — run from terminal:
+
+```sh
+bash run.sh
+# or
+python3 app.py
+```
+
 Requires Python 3.10+. No external dependencies — uses only the Python standard library.
+
+On Linux, the app auto-detects your Firefox profile from `~/.mozilla/firefox/` on first run.
 
 ## How to add a theme
 
@@ -60,7 +66,8 @@ firefox-theme-switcher/
   app.py              — main GUI (tkinter)
   config_store.py     — JSON-based config persistence
   theme_manager.py    — theme scanning, apply, backup, detection
-  run.bat             — launcher for double-click
+  run.bat             — Windows launcher
+  run.sh              — Linux/macOS launcher
   themes/             — drop theme folders here
     FoxOne/
       userChrome.css

@@ -3,7 +3,6 @@ from pathlib import Path
 from datetime import datetime
 import hashlib
 import shutil
-import struct
 
 
 @dataclass(frozen=True)

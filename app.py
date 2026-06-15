@@ -1,3 +1,6 @@
+import os
+import platform
+import subprocess
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from pathlib import Path
@@ -28,14 +31,19 @@ MUTED = "#8a8078"
 TEXT = "#f0e6d8"
 WHITE = "#ffffff"
 
-FONT = ("Segoe UI", 10)
-FONT_BOLD = ("Segoe UI", 10, "bold")
-FONT_SM = ("Segoe UI", 9)
-FONT_XS = ("Segoe UI", 8)
-FONT_U = ("Segoe UI", 7, "bold")    # uppercase labels
-FONT_H1 = ("Segoe UI", 20, "bold")
-FONT_H2 = ("Segoe UI", 16, "bold")
-FONT_H3 = ("Segoe UI", 12, "bold")
+_FONT_FAMILY = {
+    "Windows": "Segoe UI",
+    "Darwin": "Helvetica Neue",
+}.get(platform.system(), "DejaVu Sans")
+
+FONT = (_FONT_FAMILY, 10)
+FONT_BOLD = (_FONT_FAMILY, 10, "bold")
+FONT_SM = (_FONT_FAMILY, 9)
+FONT_XS = (_FONT_FAMILY, 8)
+FONT_U = (_FONT_FAMILY, 7, "bold")    # uppercase labels
+FONT_H1 = (_FONT_FAMILY, 20, "bold")
+FONT_H2 = (_FONT_FAMILY, 16, "bold")
+FONT_H3 = (_FONT_FAMILY, 12, "bold")
 
 
 # ── glass card ───────────────────────────────────────
@@ -129,6 +137,13 @@ class App(tk.Tk):
         self.config_store.load()
         raw = self.config_store.data.get("profile_folder", "")
         self.profile_path = Path(raw) if raw and is_firefox_profile(Path(raw)) else None
+
+        # Auto-detect Firefox profile on Linux/macOS if none saved
+        if not self.profile_path:
+            detected = self._detect_default_profile()
+            if detected:
+                self.profile_path = detected
+
         self.themes: list[FirefoxTheme] = []
         self.active_theme: FirefoxTheme | None = None
 
@@ -180,8 +195,12 @@ class App(tk.Tk):
         scroll.pack(side="right", fill="y")
 
         def _wheel(e):
-            self.canvas.yview_scroll(
-                -1 if e.delta > 0 or e.num == 4 else 1, "units")
+            delta = getattr(e, 'delta', 0)
+            num = getattr(e, 'num', 0)
+            if delta:
+                self.canvas.yview_scroll(-1 if delta > 0 else 1, "units")
+            elif num in (4, 5):
+                self.canvas.yview_scroll(-1 if num == 4 else 1, "units")
         self.canvas.bind_all("<MouseWheel>", _wheel)
         self.canvas.bind_all("<Button-4>", _wheel)
         self.canvas.bind_all("<Button-5>", _wheel)
@@ -203,7 +222,7 @@ class App(tk.Tk):
         col = tk.Frame(self.body, bg=BG)
         col.pack(expand=True, pady=50)
 
-        L(col, "🔥", ("Segoe UI", 44), bg=BG).pack()
+        L(col, "🔥", (_FONT_FAMILY, 44), bg=BG).pack()
         L(col, "Select your Firefox profile",
           FONT_H2, TEXT, BG).pack(pady=(6, 2))
         L(col, "Point me to your Firefox profile folder",
@@ -300,18 +319,12 @@ class App(tk.Tk):
     def _open_dir(self):
         p = self.profile_path / "chrome"
         p.mkdir(exist_ok=True)
-        try:
-            import os; os.startfile(str(p))
-        except Exception:
-            self._set_status("Could not open Explorer.")
+        self._open_folder(p)
 
     def _open_themes(self):
         p = Path.cwd() / "themes"
         p.mkdir(exist_ok=True)
-        try:
-            import os; os.startfile(str(p))
-        except Exception:
-            self._set_status("Could not open Explorer.")
+        self._open_folder(p)
 
     def _scan(self):
         root = Path.cwd() / self.config_store.data.get("theme_folder", "themes")
@@ -372,7 +385,7 @@ class App(tk.Tk):
           ).pack(side="left")
         if is_active:
             badge = tk.Label(name_row, text="ACTIVE",
-                             font=("Segoe UI", 7, "bold"),
+                             font=(_FONT_FAMILY, 7, "bold"),
                              fg="#0a0a0f", bg=SUCCESS,
                              padx=6, pady=1)
             badge.pack(side="left", padx=(8, 0))
@@ -457,7 +470,7 @@ class App(tk.Tk):
         save_btn = _btn(sr, "Save", _finish_edit,
                         bg="#1a2a1a", fg=SUCCESS,
                         activebackground="#1f3a1f",
-                        font=("Segoe UI", 8, "bold"), padx=10, pady=3)
+                        font=(_FONT_FAMILY, 8, "bold"), padx=10, pady=3)
 
     def _empty_state(self):
         ec = glass(self.body)
@@ -500,6 +513,59 @@ class App(tk.Tk):
     def _set_status(self, msg):
         self.status_var.set(msg)
 
+    def _open_folder(self, path: Path):
+        """Open folder in system file manager (cross-platform)."""
+        try:
+            if platform.system() == "Windows":
+                os.startfile(str(path))
+            elif platform.system() == "Darwin":
+                subprocess.run(["open", str(path)], check=True)
+            else:
+                subprocess.run(["xdg-open", str(path)], check=True)
+        except Exception:
+            self._set_status(f"Could not open folder: {path}")
+
+    def _detect_default_profile(self) -> Path | None:
+        """Auto-detect default Firefox profile on Linux/macOS."""
+        if platform.system() == "Windows":
+            return None
+
+        if platform.system() == "Darwin":
+            base = Path.home() / "Library" / "Application Support" / "Firefox" / "Profiles"
+        else:
+            base = Path.home() / ".mozilla" / "firefox"
+
+        if not base.exists():
+            return None
+
+        # Parse profiles.ini for default profile
+        profiles_ini = base / "profiles.ini"
+        if profiles_ini.exists():
+            import configparser
+            cfg = configparser.ConfigParser()
+            cfg.read(profiles_ini)
+            default = None
+            for sec in cfg.sections():
+                if not sec.startswith("Profile"):
+                    continue
+                rel = cfg[sec].get("Path", "")
+                if not rel:
+                    continue
+                full = Path(rel) if rel.startswith("/") else (base / rel)
+                if is_firefox_profile(full):
+                    if cfg[sec].get("Default") == "1":
+                        return full
+                    if default is None:
+                        default = full
+            if default:
+                return default
+
+        # Fallback: scan profile directories
+        for p in sorted(base.iterdir()):
+            if p.is_dir() and is_firefox_profile(p):
+                return p
+
+        return None
 
 if __name__ == "__main__":
     App().mainloop()
